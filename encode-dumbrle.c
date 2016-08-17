@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 
 static int done;
 
@@ -21,12 +22,39 @@ static int get_next_char(int infd, char *c) {
     return 0;
 }
 
+static int print_usage(const char *progname) {
+    fprintf(stderr, "Usage: %s infile [outfile]\n", progname);
+    return 0;
+}
+
 int main(int argc, char **argv) {
-    int infd = open("hdmi_phy_test1_wrapper.bin", O_RDONLY);
-    int outfd = open("hdmi_phy_test1_wrapper.bin.rle", O_WRONLY | O_CREAT | O_TRUNC, 0777);
     char buffer[65536];
     int buffer_size;
     char c;
+
+    if (argc < 1) {
+        print_usage(argv[0]);
+        return 1;
+    }
+
+    const char *infilename = argv[1];
+    int infd = open(infilename, O_RDONLY);
+    if (infd == -1) {
+        perror("Unable to open source file");
+        return 1;
+    }
+
+    char outfilename[1024];
+    if (argc < 2)
+        snprintf(outfilename, sizeof(outfilename) - 1, "%s.rle", infilename);
+    else
+        strncpy(outfilename, argv[2], sizeof(outfilename) - 1);
+
+    int outfd = open(outfilename, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+    if (outfd == -1) {
+        perror("Unable to open output file");
+        return 1;
+    }
 
     if (get_next_char(infd, &c))
         done = 1;
